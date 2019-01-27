@@ -8,64 +8,79 @@
 
 import SpriteKit
 import GameplayKit
+import AudioToolbox
+import AVFoundation
 
 class GameScene: SKScene, SKPhysicsContactDelegate{
     
-    var leftCar = SKSpriteNode()
-    var rightCar = SKSpriteNode()
-    var trees = SKSpriteNode()
+    var leftCar = SKSpriteNode() // left car
+    var rightCar = SKSpriteNode() // right car
+    var trees = SKSpriteNode() // left and right trees
     
-    var canMove = false
-    var leftCarToMoveLeft = true
-    var rightCarToMoveRight = true
+    var canMove = false // see if there car is movible
+    var leftCarToMoveLeft = true // see if the left car is in the left lane
+    var rightCarToMoveRight = true // see if the right car is in the right lane
     
-    var leftCarAtRight = false
-    var rightCarAtLeft = false
-    
-    
-    var centerPoint: CGFloat!
-    
-    let leftCarMinX: CGFloat = -230
-    let leftCarMaxX: CGFloat = -100
-    
-    let rightCarMinX: CGFloat = 100
-    let rightCarMaxX: CGFloat = 230
-    
-    var countDown = 6
-    var killStop = true
-    
-    var scoreText = SKLabelNode()
-    var score = 0
-    
-    var gameSetting = Setting.sharedInstance
-    
-    var orangeCarSpeed = CGFloat(15.0)
-    var redCarSpeed = CGFloat(15.0)
+    var leftCarAtRight = false // see if the car can move
+    var rightCarAtLeft = false // see if the car can move
     
     
+    var centerPoint: CGFloat! // center of the screen
     
+    let leftCarMinX: CGFloat = -230 // left edge
+    let leftCarMaxX: CGFloat = -100 // center left edge
+    
+    let rightCarMinX: CGFloat = 100 // center right edge
+    let rightCarMaxX: CGFloat = 230 // right edge
+    
+    var countDown = 6 // count down start time
+    var killStop = true // stop everythng
+    
+    var scoreText = SKLabelNode() // score label
+    var score = 0 // score
+    
+    var gameSetting = Setting.sharedInstance // keep track of the hightest score
+    
+    var orangeCarSpeed = CGFloat(15.0) // speed of the car
+    var redCarSpeed = CGFloat(15.0) // speed of the car
+    
+    var playMusic = true // backdroung music
+    
+    
+    /// this method gets call repeatedly will the game is going
+    ///
+    /// - Parameter view: <#view description#>
     override func didMove(to view: SKView) {
         self.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         setUp()
         
-        physicsWorld.contactDelegate = self
+        physicsWorld.contactDelegate = self // make object feel real
+        
         //makes the roadstrips
         Timer.scheduledTimer(timeInterval: TimeInterval(0.1), target: self, selector: #selector(GameScene.createRoadStrip), userInfo: nil, repeats: true)
+        
         // starts the count down
         Timer.scheduledTimer(timeInterval: TimeInterval(1), target: self, selector: #selector(GameScene.startCountDown), userInfo: nil, repeats: true)
+        
         //makes the left traffic
         Timer.scheduledTimer(timeInterval: TimeInterval(Traffic().randonCarTraffic(firstNumber: 0.8, secondNumber: 1.8)), target: self, selector: #selector(GameScene.leftTraffic), userInfo: nil, repeats: true)
+        
         //makes the right traffic
         Timer.scheduledTimer(timeInterval: TimeInterval(Traffic().randonCarTraffic(firstNumber: 0.8, secondNumber: 1.8)), target: self, selector: #selector(GameScene.rightTraffic), userInfo: nil, repeats: true)
+        
         //removes the objects that are off the screen
-        Timer.scheduledTimer(timeInterval: TimeInterval(0.5), target: self, selector: #selector(GameScene.removeItems), userInfo: nil, repeats: true)
+        Timer.scheduledTimer(timeInterval: TimeInterval(0.3), target: self, selector: #selector(GameScene.removeItems), userInfo: nil, repeats: true)
+        
         //makes all the left trees
         Timer.scheduledTimer(timeInterval: TimeInterval( Traffic().randonCarTraffic(firstNumber: 0.2, secondNumber: 1)), target: self, selector: #selector(GameScene.makeLeftTrees), userInfo: nil, repeats: true)
+        
         //makes all the right trees
         Timer.scheduledTimer(timeInterval: TimeInterval( Traffic().randonCarTraffic(firstNumber: 0.2, secondNumber: 1)), target: self, selector: #selector(GameScene.makeRightTree), userInfo: nil, repeats: true)
+        
         //makes all the middle trees
         Timer.scheduledTimer(timeInterval: TimeInterval( Traffic().randonCarTraffic(firstNumber: 4, secondNumber: 9)), target: self, selector: #selector(GameScene.makeRock), userInfo: nil, repeats: true)
         
+        //stops the game for the countdown
         let deadTime = DispatchTime.now() + 1
         DispatchQueue.main.asyncAfter(deadline: deadTime) {
             Timer.scheduledTimer(timeInterval: TimeInterval(1.5), target: self, selector: #selector(GameScene.scoreUpdate), userInfo: nil, repeats: true)
@@ -73,10 +88,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         
     }
     
-    
     /// For every frame per second this update method will get called
     ///i.e 60 times per sec
-    
     /// - Parameter currentTime: <#currentTime description#>
     override func update(_ currentTime: TimeInterval) {
         if canMove {
@@ -92,6 +105,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+    
+    /// Checks to see if two car are collided
+    ///
+    /// - Parameter contact: <#contact description#>
     func didBegin(_ contact: SKPhysicsContact) {
         var firstBody = SKPhysicsBody()
         var secBody = SKPhysicsBody()
@@ -106,7 +123,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         
         firstBody.node?.removeFromParent()
         secBody.node?.removeFromParent()
-        
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        //AudioServicesPlaySystemSound(1329)
+        playMusic = false
+        backgroundMusicP.stop()
+        killStop = true
         afterCollision()
     }
     
@@ -144,6 +165,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     
     
     /// linkes to two cars to the game scene form sks
+    /// sets the loacation and text of the score label
+    /// sets the background music
     func setUp() {
         leftCar = self.childNode(withName: "leftCar") as! SKSpriteNode
         rightCar = self.childNode(withName: "rightCar") as! SKSpriteNode
@@ -173,9 +196,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         scoreText.zPosition = 4
         addChild(scoreText)
         
+        if playMusic {
+            let songArray = ["song1.mp3","song2.mp3", "song3.mp3", "song4.mp3", "song5.mp3"]
+            let songNumber = Int.random(in: 0 ..< songArray.count)
+            playBackgroundMusic(filename: songArray[songNumber])
+        }
+        
     }
     
-    /// Makes the left and right strip of the road
+    /// Makes the left and right strip of the road with thier speed and location
     @objc func createRoadStrip() {
         
         let leftRoadStrip = SKShapeNode(rectOf: CGSize(width: 10, height: 40))
@@ -199,6 +228,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         addChild(rightRoadStrip)
     }
     
+    
+    /// Moves all the objects on the screen
     func showRoadStrip() {
         
         enumerateChildNodes(withName: "leftRoadStrip", using: { (roadStrip, stop) in
@@ -248,6 +279,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         
     }
     
+    
+    /// Moves the left car right or left
+    ///
+    /// - Parameter leftSide: see if it car move
     func move(leftSide: Bool) {
         if leftSide {  //moving left
             leftCar.position.x -= 25
@@ -262,6 +297,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+    /// Moves the right car left or right
+    ///
+    /// - Parameter rightSide: see if it can move
     func moveRight(rightSide: Bool) {
         if rightSide {
             rightCar.position.x += 20
@@ -277,6 +315,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+    
+    /// All of the left traffic that is coming down the screen
     @objc func leftTraffic() {
         if !killStop  {
             let leftTrafficItem: SKSpriteNode!
@@ -316,6 +356,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+     /// All of the right traffic that is coming down the screen
     @objc func rightTraffic() {
         if !killStop {
             let rightTrafficItem: SKSpriteNode!
@@ -355,6 +396,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+    /// Makes the left trees
     @objc func makeLeftTrees() {
         let tree: SKSpriteNode!
         tree = SKSpriteNode(imageNamed: "tree")
@@ -369,6 +411,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         addChild(tree)
     }
     
+    /// Makes the right trees
     @objc func makeRightTree() {
         let tree: SKSpriteNode!
         tree = SKSpriteNode(imageNamed: "tree")
@@ -383,47 +426,40 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         addChild(tree)
     }
     
+    /// Makes the rock come down if the score is >= 20
     @objc func makeRock() {
-        let rock: SKSpriteNode!
-        rock = SKSpriteNode(imageNamed: "rock")
-        rock.name = "rock"
-        rock.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        rock.zPosition = 10
-        rock.size.width = 80.0
-        rock.size.height = 80.0
-        let randomNum = Traffic().randonCarTraffic(firstNumber: 1, secondNumber: 5)
-        switch randomNum {
-        case 1:
-            rock.position.x = 0
-            print("in case 1")
-        case 2:
-            rock.position.x = -230
-            print("in case 2")
-        case 3:
-            rock.position.x = 230
-            print("in case 3")
-        case 4:
-            rock.position.x = 100
-            print("in case 4")
-        case 5:
-            rock.position.x = -100
-            print("in case 5")
-        default:
-            rock.position.x = Traffic().randonCarTraffic(firstNumber: -100, secondNumber: 100)
-            print("in case default")
+        if !killStop, score >= 20  {
+            let rock: SKSpriteNode!
+            rock = SKSpriteNode(imageNamed: "rock")
+            rock.name = "rock"
+            rock.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            rock.zPosition = 10
+            rock.size.width = 80.0
+            rock.size.height = 80.0
+            let randomNum = Traffic().randonCarTraffic(firstNumber: 1, secondNumber: 5)
+            switch randomNum {
+            case 1:
+                rock.position.x = 0
+                print("in case 1")
+            default:
+                rock.position.x = Traffic().randonCarTraffic(firstNumber: -300, secondNumber: 300)
+                print("in case default")
+            }
+            
+            rock.position.y = 700
+            
+            rock.physicsBody = SKPhysicsBody(circleOfRadius: rock.size.height/2)
+            rock.physicsBody?.allowsRotation = true
+            rock.physicsBody?.friction = 10.0
+            
+            addChild(rock)
+            
         }
-
-        rock.position.y = 700
         
-        rock.physicsBody = SKPhysicsBody(circleOfRadius: rock.size.height/2)
-        rock.physicsBody?.allowsRotation = true
-        rock.physicsBody?.friction = 10.0
-        
-        addChild(rock)
     }
     
     
-    
+    /// After a car has crashed the game will go back to game menu
     func afterCollision() {
         if gameSetting.highScore < score {
             gameSetting.highScore = score
@@ -433,6 +469,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         view?.presentScene(menuScene, transition: SKTransition.doorsCloseHorizontal(withDuration: TimeInterval(2)))
     }
     
+    /// Does the countdown of the game
     @objc func startCountDown() {
         if countDown >= 0 {
             if countDown == 0{
@@ -459,6 +496,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+    /// Uodates the score
     @objc func scoreUpdate() {
         if !killStop {
             score += 1
@@ -466,5 +504,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         }
     }
     
+    var backgroundMusicP: AVAudioPlayer! // Music player
+    
+    
+    /// Plays music
+    ///
+    /// - Parameter filename: name of the song
+    func playBackgroundMusic(filename: String) {
+        let url = Bundle.main.url(
+            forResource: filename, withExtension: nil)
+        if (url == nil) {
+            print("Could not find file: \(filename)")
+            return
+        }
+        
+        do {
+            
+            backgroundMusicP = try AVAudioPlayer(contentsOf: url!)
+        } catch {
+            
+            backgroundMusicP = nil
+        }
+        
+        backgroundMusicP.numberOfLoops = -1
+        backgroundMusicP.prepareToPlay()
+        backgroundMusicP.play()
+    }
+
     
 }

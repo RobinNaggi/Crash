@@ -11,11 +11,15 @@ import SpriteKit
 
 class GameMenu: SKScene {
     
-    var startGame = SKLabelNode()
-    var bestScore = SKLabelNode()
-    var gameSetting = Setting.sharedInstance
+    var startGame = SKLabelNode() // Start game label
+    var bestScore = SKLabelNode() // best score label
+    var gameSetting = Setting.sharedInstance // highed score of the game
     
     
+    
+    /// Linkes the label as a button
+    ///
+    /// - Parameter view: <#view description#>
     override func didMove(to view: SKView) {
         self.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         startGame = self.childNode(withName: "startGame") as! SKLabelNode
@@ -23,6 +27,11 @@ class GameMenu: SKScene {
         bestScore.text = "BEST: \(gameSetting.highScore)"
     }
     
+    /// Finds the location of where the user touched the screen
+    ///
+    /// - Parameters:
+    ///   - touches: touch location
+    ///   - event: <#event description#>
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             let touchLocation = touch.location(in: self)
